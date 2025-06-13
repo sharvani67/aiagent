@@ -1,0 +1,13 @@
+body {
+      background-color: #f8f9fa;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: Arial, sans-serif;
+    }
+
+    .dashboard-card {
+      max-width: 500px;
+      width: 100%;
+    }
