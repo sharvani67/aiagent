@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>DB AI Agent</title>
+</head>
+<body>
+    <h2>DB Agent – Ask in Natural Language</h2>
+    <form method="post">
+        {% csrf_token %}
+        <input type="text" name="user_request" placeholder="Enter your question..." style="width: 400px;" required>
+        <button type="submit">Submit</button>
+    </form>
+
+    {% if generated_query %}
+        <h3>Generated SQL Query:</h3>
+        <pre>{{ generated_query }}</pre>
+    {% endif %}
+
+    {% if columns %}
+        <h3>Results:</h3>
+        <table border="1">
+            <tr>
+                {% for col in columns %}
+                    <th>{{ col }}</th>
+                {% endfor %}
+            </tr>
+            {% for row in rows %}
+                <tr>
+                    {% for item in row %}
+                        <td>{{ item }}</td>
+                    {% endfor %}
+                </tr>
+            {% endfor %}
+        </table>
+    {% elif message %}
+        <p><strong>{{ message }}</strong></p>
+    {% endif %}
+
+    {% if error %}
+        <p style="color: red;"><strong>Error:</strong> {{ error }}</p>
+    {% endif %}
+</body>
+</html>
