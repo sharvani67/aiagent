@@ -13,17 +13,23 @@ db_config = {
     "host": "localhost",
     "user": "root",
     "password": "",
-    "database": "bulk_orders_db"
+    "database": "business_form"
 }
 
 def get_sql_query(user_request):
+    schema_info = get_all_table_schemas()
+
+    if "Database Error" in schema_info:
+        return schema_info
+
     prompt = f"""
-    Generate a MySQL query for the following request: '{user_request}'.
-    The table name is 'bulk_orders', and it contains the following columns:
-    id, full_name, company_name, email, phone, lemon_chutney, pulihora_chutney, sorakaya_chutney,
-    tomato_chutney, shipping_city, shipping_pincode, additional_message, created_at, source.
+    Based on the following database schema:
+    {schema_info}
+
+    Generate a MySQL query for the request: "{user_request}".
     Only return the SQL query.
     """
+
     try:
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
@@ -37,23 +43,25 @@ def execute_query(query):
     try:
         conn = mysql.connector.connect(**db_config)
         cursor = conn.cursor()
-        result_data = []
+        result_data = {}
 
-        if query.strip().lower().startswith("select"):
-            cursor.execute(query)
+        cursor.execute(query)
+
+        if cursor.description:  # Means the query returned rows (like SELECT, SHOW, etc.)
             columns = [desc[0] for desc in cursor.description]
             rows = cursor.fetchall()
             result_data = {"columns": columns, "rows": rows[:10]}
         else:
-            cursor.execute(query)
             conn.commit()
             result_data = {"message": "Query executed successfully."}
 
         cursor.close()
         conn.close()
         return result_data
+
     except mysql.connector.Error as e:
         return {"error": str(e)}
+
 
 def db_agent_view(request):
     context = {}
@@ -67,3 +75,26 @@ def db_agent_view(request):
             context.update(result)
 
     return render(request, "dbagent/agent.html", context)
+
+
+def get_all_table_schemas():
+    try:
+        conn = mysql.connector.connect(**db_config)
+        cursor = conn.cursor()
+
+        cursor.execute("SHOW TABLES")
+        tables = [row[0] for row in cursor.fetchall()]
+        schema_info = []
+
+        for table in tables:
+            cursor.execute(f"DESCRIBE {table}")
+            columns = cursor.fetchall()
+            column_names = [col[0] for col in columns]
+            schema_info.append(f"Table: {table}, Columns: {', '.join(column_names)}")
+
+        cursor.close()
+        conn.close()
+        return "\n".join(schema_info)
+
+    except mysql.connector.Error as e:
+        return f"Database Error: {e}"
